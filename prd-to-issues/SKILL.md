@@ -1,5 +1,5 @@
 ---
-name: prd-to-plan
+name: prd-to-issues
 description: Break a PRD into independently-grabbable issues using vertical slices (tracer bullets).
 ---
 
