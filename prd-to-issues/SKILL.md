@@ -1,6 +1,7 @@
-# PRD to Issues
-
-Break a PRD into independently-grabbable issues using vertical slices (tracer bullets).
+---
+name: prd-to-plan
+description: Break a PRD into independently-grabbable issues using vertical slices (tracer bullets).
+---
 
 ## Process
 
