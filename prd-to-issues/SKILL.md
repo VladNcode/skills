@@ -7,7 +7,7 @@ description: Break a PRD into independently-grabbable issues using vertical slic
 
 ### 1. Locate the PRD
 
-Ask the user for the PRD file path (e.g. `docs/prd/feature-name.md`).
+Ask the user for the PRD file path (e.g. `./docs/prd/feature-name.md`).
 
 If the PRD is not already in your context window, read it from the file.
 
@@ -47,7 +47,7 @@ Iterate until the user approves the breakdown.
 
 ### 5. Create the issue files
 
-For each approved slice, create a markdown file in `docs/issues/` (create the directory if it doesn't exist). Use a descriptive kebab-case filename with a numeric prefix for ordering (e.g. `docs/issues/01-database-schema.md`, `docs/issues/02-api-endpoints.md`).
+For each approved slice, create a markdown file in `./docs/issues/` (create the directory if it doesn't exist). Use a descriptive kebab-case filename with a numeric prefix for ordering (e.g. `./docs/issues/01-database-schema.md`, `./docs/issues/02-api-endpoints.md`).
 
 Create files in dependency order (blockers first) so you can reference real filenames in the "Blocked by" field.
 
