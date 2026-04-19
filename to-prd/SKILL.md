@@ -1,9 +1,13 @@
 ---
 name: to-prd
-description: Turn the current conversation context into a PRD and then save as a local file in docs/prd. Use when user wants to create a PRD from the current context.
+description: Turn the current conversation context into a PRD and save it under ./docs/prd. Use when user wants to create a PRD from the current context.
 ---
 
-This skill takes the current conversation context and codebase understanding and produces a PRD. Do NOT interview the user — just synthesize what you already know.
+This skill takes the current conversation context and codebase understanding and produces a PRD.
+
+**No broad interview:** do not run a discovery Q&A from scratch or repeat questions already answered in the thread. Synthesize what is already in context.
+
+**Narrow confirmations allowed:** you may ask at most **one short checkpoint** before writing—e.g. “Do these module boundaries look right?” and “Which modules should get tests?”—only if the thread leaves that ambiguous. If the user already stated modules or testing intent, skip the checkpoint.
 
 ## Process
 
@@ -13,9 +17,11 @@ This skill takes the current conversation context and codebase understanding and
 
 A deep module (as opposed to a shallow module) is one which encapsulates a lot of functionality in a simple, testable interface which rarely changes.
 
-Check with the user that these modules match their expectations. Check with the user which modules they want tests written for.
+Apply the **narrow confirmations** rule above for module list and test scope.
 
-3. Write the PRD using the template below and save the PRD as a markdown file in `docs/prd/` (create the directory if it doesn't exist). Use a descriptive kebab-case filename (e.g. `docs/prd/yacht-search-filters.md`).
+3. Write the PRD using the template below and save it as a markdown file under `./docs/prd/` (create the directory if it doesn't exist). Use a descriptive kebab-case filename (e.g. `./docs/prd/yacht-search-filters.md`).
+
+Section headings **Implementation Decisions**, **Testing Decisions**, **Out of Scope**, and **Further Notes** intentionally mirror [request-refactor-plan/SKILL.md](../request-refactor-plan/SKILL.md) so plans and PRDs stay consistent; keep the same semantics when filling them.
 
 <prd-template>
 

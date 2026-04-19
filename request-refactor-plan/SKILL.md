@@ -21,6 +21,8 @@ This skill will be invoked when the user wants to create a refactor request. You
 
 8. Write the plan to a local markdown file under `./docs/refactor-plans/`, using kebab-case for the filename (e.g. `./docs/refactor-plans/extract-payment-service.md`). Confirm the basename with the user if it is ambiguous. Create the directory if it does not exist.
 
+Sections **Decision Document**, **Testing Decisions**, **Out of Scope**, and **Further Notes** align with [to-prd/SKILL.md](../to-prd/SKILL.md) so PRDs and refactor plans stay consistent.
+
 Use the following template for the document body:
 
 <refactor-plan-template>

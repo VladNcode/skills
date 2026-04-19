@@ -31,9 +31,11 @@ The core principle: **replace, don't layer.**
 - Tests assert on observable outcomes through the public interface, not internal state
 - Tests should survive internal refactors — they describe behavior, not implementation
 
-## Issue Template
+## Architecture RFC template
 
-<issue-template>
+Use this body when writing `./docs/architecture-rfcs/{short-name}.md` (see SKILL.md step 7).
+
+<architecture-rfc-template>
 
 ## Problem
 
@@ -75,4 +77,4 @@ Durable architectural guidance that is NOT coupled to current file paths:
 - What it should expose (the interface contract)
 - How callers should migrate to the new interface
 
-</issue-template>
+</architecture-rfc-template>

@@ -11,8 +11,10 @@ Break a plan into independently-grabbable issues using vertical slices (tracer b
 
 ### 1. Gather context
 
-Ask the user for the PRD file path (e.g. `./docs/prd/feature-name.md`).
+Ask the user for the PRD (or spec) file path (e.g. `./docs/prd/feature-name.md`).
 If the PRD is not already in your context window, read it from the file.
+
+**Convention:** Prefer PRDs under `./docs/prd/` so issue files can link back predictably.
 
 ### 2. Explore the codebase (optional)
 
@@ -53,10 +55,12 @@ Iterate until the user approves the breakdown.
 For each approved slice, create a numbered markdown file in `./docs/issues/{prd-name}/`, using kebab-case filenames.
 Create files in dependency order (blockers first) so you can reference real filenames in the "Blocked by" field.
 
+**Parent link:** Under `## Parent`, use a **relative path from the issue file to the PRD** (or spec), not a hardcoded guess. After you know both paths, compute it (e.g. from `./docs/issues/my-feature/01-auth.md` to `./docs/prd/my-feature.md` → `../../prd/my-feature.md`). If the PRD lives outside `./docs/prd/`, still compute the correct relative path from the issue file.
+
 <issue-template>
 ## Parent
 
-[feature-name](../../prd/feature-name.md)
+[Short label for the feature or spec](../path/from/this/issue/to/source.md)
 
 ## What to build
 

@@ -109,7 +109,7 @@ Structure your review as follows:
 (optional improvements, not blocking)
 ```
 
-**Inline comments**: Use this format for file-specific findings:
+**Inline comments (optional, Cursor-specific):** If the host supports it, you may use this format for file-specific findings; otherwise fold the same content into the **Findings** sections above.
 ```
 ::code-comment{file="path/to/file.ts" line="42" severity="P1"}
 Description of the issue and suggested fix.

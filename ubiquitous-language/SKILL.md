@@ -15,7 +15,7 @@ Extract and formalize domain terminology from the current conversation into a co
    - Different words used for the same concept (synonyms)
    - Vague or overloaded terms
 3. **Propose a canonical glossary** with opinionated term choices
-4. **Write to `UBIQUITOUS_LANGUAGE.md`** in the working directory using the format below
+4. **Write to `UBIQUITOUS_LANGUAGE.md`** at the **project root**: the workspace root for the user's repository (the directory they are building in—typically where `.git` lives or the folder they named as the project). If the project root is unclear, ask once; do not write the file into a global skills or tooling folder by mistake.
 5. **Output a summary** inline in the conversation
 
 ## Output Format
@@ -70,7 +70,7 @@ Write a `UBIQUITOUS_LANGUAGE.md` file with this structure:
 
 When invoked again in the same conversation:
 
-1. Read the existing `UBIQUITOUS_LANGUAGE.md`
+1. Read the existing `UBIQUITOUS_LANGUAGE.md` in the same project root
 2. Incorporate any new terms from subsequent discussion
 3. Update definitions if understanding has evolved
 4. Mark changed entries with "(updated)" and new entries with "(new)"
@@ -81,4 +81,4 @@ When invoked again in the same conversation:
 
 After writing the file, state:
 
-> I've written/updated `UBIQUITOUS_LANGUAGE.md`. From this point forward I will use these terms consistently. If I drift from this language or you notice a term that should be added, let me know.
+> I've written/updated `UBIQUITOUS_LANGUAGE.md` in the project root. From this point forward I will use these terms consistently. If I drift from this language or you notice a term that should be added, let me know.

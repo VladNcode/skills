@@ -5,7 +5,7 @@ description: Explore a codebase to find opportunities for architectural improvem
 
 # Improve Codebase Architecture
 
-Explore a codebase like an AI would, surface architectural friction, discover opportunities for improving testability, and propose module-deepening refactors as GitHub issue RFCs.
+Explore a codebase like an AI would, surface architectural friction, discover opportunities for improving testability, and capture the outcome in a **local architecture RFC** (markdown under `./docs/architecture-rfcs/`).
 
 A **deep module** (John Ousterhout, "A Philosophy of Software Design") has a small interface hiding a large implementation. Deep modules are more testable, more AI-navigable, and let you test at the boundary instead of inside.
 
@@ -13,7 +13,11 @@ A **deep module** (John Ousterhout, "A Philosophy of Software Design") has a sma
 
 ### 1. Explore the codebase
 
-Use the Agent tool with subagent_type=Explore to navigate the codebase naturally. Do NOT follow rigid heuristics — explore organically and note where you experience friction:
+**Preferred:** Use the Agent tool with `subagent_type=Explore` to navigate the codebase naturally.
+
+**If that tool is unavailable:** Explore with normal file reads, search, and semantic exploration—same friction questions, same organic notes.
+
+Do NOT follow rigid heuristics — explore organically and note where you experience friction:
 
 - Where does understanding one concept require bouncing between many small files?
 - Where are modules so shallow that the interface is nearly as complex as the implementation?
@@ -48,16 +52,18 @@ Show this to the user, then immediately proceed to Step 5. The user reads and th
 
 ### 5. Design multiple interfaces
 
-Spawn 3+ sub-agents in parallel using the Agent tool. Each must produce a **radically different** interface for the deepened module.
+**Preferred:** Spawn 3+ sub-agents in parallel using the Agent tool. Each must produce a **radically different** interface for the deepened module.
 
-Prompt each sub-agent with a separate technical brief (file paths, coupling details, dependency category, what's being hidden). This brief is independent of the user-facing explanation in Step 4. Give each agent a different design constraint:
+**If the Agent tool is unavailable:** Produce at least three contrasting designs yourself (serial passes are fine), each with a different constraint as below.
+
+Prompt each sub-agent (or each pass) with a separate technical brief (file paths, coupling details, dependency category, what's being hidden). This brief is independent of the user-facing explanation in Step 4. Give each agent a different design constraint:
 
 - Agent 1: "Minimize the interface — aim for 1-3 entry points max"
 - Agent 2: "Maximize flexibility — support many use cases and extension"
 - Agent 3: "Optimize for the most common caller — make the default case trivial"
 - Agent 4 (if applicable): "Design around the ports & adapters pattern for cross-boundary dependencies"
 
-Each sub-agent outputs:
+Each design outputs:
 
 1. Interface signature (types, methods, params)
 2. Usage example showing how callers use it
@@ -70,3 +76,17 @@ Present designs sequentially, then compare them in prose.
 After comparing, give your own recommendation: which design you think is strongest and why. If elements from different designs would combine well, propose a hybrid. Be opinionated — the user wants a strong read, not just a menu.
 
 ### 6. User picks an interface (or accepts recommendation)
+
+Record which design (or hybrid) is chosen. This becomes the **Proposed Interface** section of the RFC.
+
+### 7. Write the architecture RFC
+
+Fill the **Architecture RFC template** in [REFERENCE.md](REFERENCE.md) using the chosen design, dependency category, testing strategy, and implementation recommendations.
+
+Save the document as `./docs/architecture-rfcs/{short-name}.md` using kebab-case for `short-name`. Confirm the basename with the user if ambiguous. Create the directory if it does not exist.
+
+Publishing to GitHub or a ticket system is optional—only if the user explicitly asks.
+
+### 8. Optional: execution plan
+
+If the user wants **tiny commits** and step-by-step refactor execution, use the **request-refactor-plan** skill next; it writes to `./docs/refactor-plans/` and complements this RFC without duplicating the interface design work.
