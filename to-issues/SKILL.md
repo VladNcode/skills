@@ -1,14 +1,17 @@
 ---
-name: prd-to-issues
-description: Break a PRD into independently-grabbable issues using vertical slices (tracer bullets).
+name: to-issues
+description: Break a plan, spec, or PRD into independently-grabbable issues using tracer-bullet vertical slices. Use when user wants to convert a plan into issues, create implementation tickets, or break down work into issues.
 ---
+
+# To Issues
+
+Break a plan into independently-grabbable issues using vertical slices (tracer bullets).
 
 ## Process
 
-### 1. Locate the PRD
+### 1. Gather context
 
 Ask the user for the PRD file path (e.g. `./docs/prd/feature-name.md`).
-
 If the PRD is not already in your context window, read it from the file.
 
 ### 2. Explore the codebase (optional)
@@ -17,7 +20,7 @@ If you have not already explored the codebase, do so to understand the current s
 
 ### 3. Draft vertical slices
 
-Break the PRD into **tracer bullet** issues. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
+Break the plan into **tracer bullet** issues. Each issue is a thin vertical slice that cuts through ALL integration layers end-to-end, NOT a horizontal slice of one layer.
 
 Slices may be 'HITL' or 'AFK'. HITL slices require human interaction, such as an architectural decision or a design review. AFK slices can be implemented and merged without human interaction. Prefer AFK over HITL where possible.
 
@@ -34,7 +37,7 @@ Present the proposed breakdown as a numbered list. For each slice, show:
 - **Title**: short descriptive name
 - **Type**: HITL / AFK
 - **Blocked by**: which other slices (if any) must complete first
-- **User stories covered**: which user stories from the PRD does this address
+- **User stories covered**: which user stories this addresses (if the source material has them)
 
 Ask the user:
 
@@ -47,18 +50,17 @@ Iterate until the user approves the breakdown.
 
 ### 5. Create the issue files
 
-For each approved slice, create a markdown file in `./docs/issues/{prd-name}/` where `{prd-name}` matches the PRD filename without extension (e.g. PRD at `docs/prd/live-stream-websocket.md` → issues in `docs/issues/live-stream-websocket/`). Create the directory if it doesn't exist. Use a descriptive kebab-case filename with a numeric prefix for ordering (e.g. `./docs/issues/live-stream-websocket/01-database-schema.md`).
-
+For each approved slice, create a numbered markdown file in `./docs/issues/{prd-name}/`, using kebab-case filenames.
 Create files in dependency order (blockers first) so you can reference real filenames in the "Blocked by" field.
 
 <issue-template>
-## Parent PRD
+## Parent
 
 [feature-name](../../prd/feature-name.md)
 
 ## What to build
 
-A concise description of this vertical slice. Describe the end-to-end behavior, not layer-by-layer implementation. Reference specific sections of the parent PRD rather than duplicating content.
+A concise description of this vertical slice. Describe the end-to-end behavior, not layer-by-layer implementation.
 
 ## Acceptance criteria
 
@@ -71,13 +73,6 @@ A concise description of this vertical slice. Describe the end-to-end behavior, 
 - Blocked by [slice-name](./01-slice-name.md) (if any)
 
 Or "None - can start immediately" if no blockers.
-
-## User stories addressed
-
-Reference by number from the parent PRD:
-
-- User story 3
-- User story 7
 
 </issue-template>
 
