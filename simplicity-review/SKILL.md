@@ -77,15 +77,14 @@ One flagged/simpler pair per check, in TypeScript on Node. Each ends with when t
 
 #### Speculative feature
 
-Asked: "Archive a workspace's records when it is deleted."
+Asked: "Send a welcome email when a user signs up."
 
 ```ts
-// Flagged: restore and a dry-run flag nobody asked for
-export async function archiveRecords(workspaceId: string, opts: { dryRun?: boolean } = {}) { /* … */ }
-export async function restoreRecords(workspaceId: string) { /* … */ }
+// Flagged: templates, scheduling, and a dry-run flag nobody asked for
+export async function sendWelcome(user: User, opts: { template?: string; sendAt?: Date; dryRun?: boolean } = {}) { /* … */ }
 
 // Simpler
-export async function archiveRecords(workspaceId: string) { /* … */ }
+export async function sendWelcome(user: User) { /* … */ }
 ```
 
 Fine when the request or ticket names the extra behaviour.
@@ -93,15 +92,16 @@ Fine when the request or ticket names the extra behaviour.
 #### Single-use abstraction
 
 ```ts
-// Flagged: an interface, a class, and a factory around one RPC call with one caller
-interface InvoiceFetcher { fetch(id: string): Promise<Invoice | undefined> }
-class BillingInvoiceFetcher implements InvoiceFetcher {
-  fetch(id: string) { return sendRpc(USER_ID, 'billing', 'getInvoice', { id }); }
+// Flagged: an interface, a class, and a factory around one HTTP call with one caller
+interface WeatherSource { today(city: string): Promise<Forecast> }
+class HttpWeatherSource implements WeatherSource {
+  async today(city: string) { return (await fetch(`${API}/forecast?city=${city}`)).json(); }
 }
-export const createInvoiceFetcher = (): InvoiceFetcher => new BillingInvoiceFetcher();
+export const createWeatherSource = (): WeatherSource => new HttpWeatherSource();
 
 // Simpler
-export const fetchInvoice = (id: string) => sendRpc(USER_ID, 'billing', 'getInvoice', { id });
+export const fetchForecast = async (city: string): Promise<Forecast> =>
+  (await fetch(`${API}/forecast?city=${city}`)).json();
 ```
 
 Fine when a second adapter exists today, such as a test fake swapped in at that seam.
@@ -109,11 +109,11 @@ Fine when a second adapter exists today, such as a test fake swapped in at that 
 #### Unasked flexibility
 
 ```ts
-// Flagged: every caller passes 100 and 'desc'
-function listInvoices(customerId: string, pageSize = 100, order: 'asc' | 'desc' = 'desc', retries = 3) { /* … */ }
+// Flagged: every caller passes 50 and 'desc'
+function listOrders(userId: string, pageSize = 50, order: 'asc' | 'desc' = 'desc', retries = 3) { /* … */ }
 
 // Simpler
-function listInvoices(customerId: string) { /* 100 per page, newest first */ }
+function listOrders(userId: string) { /* 50 per page, newest first */ }
 ```
 
 Fine when at least two callers already pass different values.
@@ -121,39 +121,39 @@ Fine when at least two callers already pass different values.
 #### Impossible-case handling
 
 ```ts
-// Flagged: the type says workspaceId is a string, and the caller has just read it from the record
-function workspaceKey(workspaceId: string) {
-  if (!workspaceId) return undefined;
+// Flagged: the type says id is a string, and the caller has just read it from a typed object
+function cacheKey(id: string) {
+  if (!id) return undefined;
   try {
-    return `invoice:${workspaceId}`;
+    return `order:${id}`;
   } catch {
     return undefined;
   }
 }
 
 // Simpler
-const workspaceKey = (workspaceId: string) => `invoice:${workspaceId}`;
+const cacheKey = (id: string) => `order:${id}`;
 ```
 
-Fine at a real edge: RPC payloads, Mongo documents, env vars, and user input, where the type is a promise rather than a fact.
+Fine at a real edge: HTTP payloads, database documents, env vars, and user input, where the type is a promise rather than a fact.
 
 #### Bloat
 
 ```ts
 // Flagged
-const paid: Invoice[] = [];
-for (const invoice of invoices) {
-  if (invoice.status === 'paid') {
-    if (invoice.amountUsd > 0) paid.push(invoice);
+const shipped: Order[] = [];
+for (const order of orders) {
+  if (order.status === 'shipped') {
+    if (order.total > 0) shipped.push(order);
   }
 }
-let total = 0;
-for (const invoice of paid) total += invoice.amountUsd;
+let revenue = 0;
+for (const order of shipped) revenue += order.total;
 
 // Simpler
-const total = invoices
-  .filter(i => i.status === 'paid' && i.amountUsd > 0)
-  .reduce((sum, i) => sum + i.amountUsd, 0);
+const revenue = orders
+  .filter(o => o.status === 'shipped' && o.total > 0)
+  .reduce((sum, o) => sum + o.total, 0);
 ```
 
 Fine when the longer form matches the file's own style, or a step needs its own log line.
@@ -162,17 +162,17 @@ Fine when the longer form matches the file's own style, or a step needs its own 
 
 #### Drive-by change
 
-Asked: "Log the workspace id when the invoice fetch fails."
+Asked: "Log the user id when loading the profile fails."
 
 ```diff
--export async function fetchInvoice(id, workspaceId) {
--    try { return await billingRpc('getInvoice', { id, workspaceId }); }
--    catch (e) { log.error('fetch failed', e); }
-+export const fetchInvoice = async (stripeInvoiceId: string, workspaceId: string) => {
+-export async function loadProfile(id) {
+-    try { return await api.get('/profile/' + id); }
+-    catch (e) { log.error('load failed', e); }
++export const loadProfile = async (userId: string) => {
 +  try {
-+    return await billingRpc('getInvoice', { stripeInvoiceId, workspaceId });
++    return await api.get(`/profile/${userId}`);
 +  } catch (error) {
-+    log.error(`fetchInvoice failed for workspace ${workspaceId}:`, error);
++    log.error(`loadProfile failed for user ${userId}:`, error);
 +  }
 ```
 
@@ -184,19 +184,19 @@ Fine when the ticket asks for the cleanup, or the touched line must change anywa
 
 ```ts
 // Surrounding file: named exports, async/await, errors logged and swallowed
-export async function syncContact(account: Account) { /* … */ }
+export async function syncUser(user: User) { /* … */ }
 
 // Flagged: a default-exported class with promise chains and thrown errors
-export default class DealSyncer {
-  run(invoice: Invoice) {
-    return findDeal(invoice).then(deal => { if (!deal) throw new Error('no deal'); /* … */ });
+export default class CartSyncer {
+  run(cart: Cart) {
+    return findOwner(cart).then(owner => { if (!owner) throw new Error('no owner'); /* … */ });
   }
 }
 
 // Simpler: match the file
-export async function syncDeal(invoice: Invoice) {
-  const deal = await findDeal(invoice);
-  if (!deal) return log.warn(`no Deal for ${invoice.id}`);
+export async function syncCart(cart: Cart) {
+  const owner = await findOwner(cart);
+  if (!owner) return log.warn(`no owner for cart ${cart.id}`);
   /* … */
 }
 ```
@@ -206,23 +206,23 @@ Fine when the repo's documented standard differs from the file. The standard win
 #### Own leftovers
 
 ```diff
--import { fetchLatestInvoice, fetchPreviousInvoice } from '../billing/client.js';
-+import { fetchInvoices, fetchLatestInvoice, fetchPreviousInvoice } from '../billing/client.js';
--  const previous = await fetchPreviousInvoice(invoice.id, sub, workspaceId);
-+  const all = await fetchInvoices(workspaceId);
+-import { getOrder, getOrderItems } from './orders.js';
++import { getOrder, getOrderItems, getOrderWithItems } from './orders.js';
+-  const items = await getOrderItems(order.id);
++  const { items } = await getOrderWithItems(order.id);
 ```
 
-Flagged: this diff removed the last call to fetchPreviousInvoice but kept its import. Simpler: drop it from the import.
+Flagged: this diff removed the last call to getOrderItems but kept its import. Simpler: drop it from the import.
 
 Fine when other code still calls it. Check before removing.
 
 #### Unasked cleanup
 
 ```diff
- export function renewalStatus(row: Row) { /* the change */ }
+ export function orderLabel(order: Order) { /* the change */ }
 -
--// Old chain helper, unused since 1.0.40
--function legacyWalkBack(row: Row) { /* … */ }
+-// Old formatter, unused since v2
+-function legacyLabel(order: Order) { /* … */ }
 ```
 
 Flagged: the dead helper predates this diff and nobody asked to remove it. Simpler: restore it, and mention it in the PR as a follow-up.
@@ -233,19 +233,19 @@ Fine when the ticket is the cleanup, or this diff is what made it dead.
 
 #### Unproven fix
 
-Bug: "A Renewal row gets both prorations merged twice."
+Bug: "A discount gets applied twice when two coupons arrive together."
 
 ```diff
--  await mergeProration(row, first); await mergeProration(row, second);
-+  await mergeProrations(row, [first, second]);
+-  await applyCoupon(cart, first); await applyCoupon(cart, second);
++  await applyCoupons(cart, [first, second]);
 ```
 
-Flagged: no test reproduces the double merge. Simpler: add the test first, see it fail, then fix.
+Flagged: no test reproduces the double discount. Simpler: add the test first, see it fail, then fix.
 
 ```ts
-it('merges two prorations into one row once', async () => {
-  await syncInvoices([period, proration1, proration2]);
-  expect(amountOf(rowFor(period))).toBe(period.amountUsd + proration1.amountUsd + proration2.amountUsd);
+it('applies two coupons once each', async () => {
+  const cart = await checkout({ items: [book], coupons: [tenOff, fiveOff] });
+  expect(cart.total).toBe(book.price - 10 - 5);
 });
 ```
 
@@ -254,13 +254,13 @@ Fine when the code has no tests and the fix is a config value or a one-line typo
 #### Unguarded refactor
 
 ```diff
--export async function syncInvoice(invoice: Invoice) { /* 120 lines */ }
-+export async function syncInvoice(invoice: Invoice) {
-+  const period = await findPeriod(invoice);
-+  return period ? updatePeriod(period, invoice) : createPeriod(invoice);
+-export async function placeOrder(cart: Cart) { /* 120 lines */ }
++export async function placeOrder(cart: Cart) {
++  const stock = await reserveStock(cart);
++  return stock.ok ? charge(cart) : rejectOrder(cart, stock.missing);
 +}
 ```
 
-Flagged: behaviour should be unchanged, but no test covers syncInvoice. Simpler: point to the tests that cover it, or add one per branch before splitting.
+Flagged: behaviour should be unchanged, but no test covers placeOrder. Simpler: point to the tests that cover it, or add one per branch before splitting.
 
 Fine when existing tests already exercise every branch. Name them in the review.
