@@ -56,6 +56,8 @@ Each check is a judgement call. Label it as "possible …", never as a hard viol
 - **Unproven fix**: a bug fix with no test that reproduces the bug. → add a failing-then-passing test.
 - **Unguarded refactor**: behaviour-preserving changes with no tests covering the touched code. → add or point to tests.
 
+When a finding is borderline, compare it with the matching pair under Examples below.
+
 ### 5. Report
 
 Keep it under 400 words. Group by the three headings above, and skip any heading with no findings. For each finding, give:
@@ -66,3 +68,199 @@ Keep it under 400 words. Group by the three headings above, and skip any heading
 - the fix in one line, with the shorter code when it helps
 
 End with one line: the finding count per heading, and the single change that would simplify the PR most. If the diff is already minimal, say so in one line and stop.
+
+## Examples
+
+One flagged/simpler pair per check, in TypeScript on Node. Each ends with when the pattern is fine, which settles most borderline calls.
+
+### Simplicity first
+
+#### Speculative feature
+
+Asked: "Archive a workspace's records when it is deleted."
+
+```ts
+// Flagged: restore and a dry-run flag nobody asked for
+export async function archiveRecords(workspaceId: string, opts: { dryRun?: boolean } = {}) { /* … */ }
+export async function restoreRecords(workspaceId: string) { /* … */ }
+
+// Simpler
+export async function archiveRecords(workspaceId: string) { /* … */ }
+```
+
+Fine when the request or ticket names the extra behaviour.
+
+#### Single-use abstraction
+
+```ts
+// Flagged: an interface, a class, and a factory around one RPC call with one caller
+interface InvoiceFetcher { fetch(id: string): Promise<Invoice | undefined> }
+class BillingInvoiceFetcher implements InvoiceFetcher {
+  fetch(id: string) { return sendRpc(USER_ID, 'billing', 'getInvoice', { id }); }
+}
+export const createInvoiceFetcher = (): InvoiceFetcher => new BillingInvoiceFetcher();
+
+// Simpler
+export const fetchInvoice = (id: string) => sendRpc(USER_ID, 'billing', 'getInvoice', { id });
+```
+
+Fine when a second adapter exists today, such as a test fake swapped in at that seam.
+
+#### Unasked flexibility
+
+```ts
+// Flagged: every caller passes 100 and 'desc'
+function listInvoices(customerId: string, pageSize = 100, order: 'asc' | 'desc' = 'desc', retries = 3) { /* … */ }
+
+// Simpler
+function listInvoices(customerId: string) { /* 100 per page, newest first */ }
+```
+
+Fine when at least two callers already pass different values.
+
+#### Impossible-case handling
+
+```ts
+// Flagged: the type says workspaceId is a string, and the caller has just read it from the record
+function workspaceKey(workspaceId: string) {
+  if (!workspaceId) return undefined;
+  try {
+    return `invoice:${workspaceId}`;
+  } catch {
+    return undefined;
+  }
+}
+
+// Simpler
+const workspaceKey = (workspaceId: string) => `invoice:${workspaceId}`;
+```
+
+Fine at a real edge: RPC payloads, Mongo documents, env vars, and user input, where the type is a promise rather than a fact.
+
+#### Bloat
+
+```ts
+// Flagged
+const paid: Invoice[] = [];
+for (const invoice of invoices) {
+  if (invoice.status === 'paid') {
+    if (invoice.amountUsd > 0) paid.push(invoice);
+  }
+}
+let total = 0;
+for (const invoice of paid) total += invoice.amountUsd;
+
+// Simpler
+const total = invoices
+  .filter(i => i.status === 'paid' && i.amountUsd > 0)
+  .reduce((sum, i) => sum + i.amountUsd, 0);
+```
+
+Fine when the longer form matches the file's own style, or a step needs its own log line.
+
+### Surgical changes
+
+#### Drive-by change
+
+Asked: "Log the workspace id when the invoice fetch fails."
+
+```diff
+-export async function fetchInvoice(id, workspaceId) {
+-    try { return await billingRpc('getInvoice', { id, workspaceId }); }
+-    catch (e) { log.error('fetch failed', e); }
++export const fetchInvoice = async (stripeInvoiceId: string, workspaceId: string) => {
++  try {
++    return await billingRpc('getInvoice', { stripeInvoiceId, workspaceId });
++  } catch (error) {
++    log.error(`fetchInvoice failed for workspace ${workspaceId}:`, error);
++  }
+```
+
+Flagged: the arrow function, renames, types, and indentation are outside the ask. Simpler: change only the log line.
+
+Fine when the ticket asks for the cleanup, or the touched line must change anyway.
+
+#### Style drift
+
+```ts
+// Surrounding file: named exports, async/await, errors logged and swallowed
+export async function syncContact(account: Account) { /* … */ }
+
+// Flagged: a default-exported class with promise chains and thrown errors
+export default class DealSyncer {
+  run(invoice: Invoice) {
+    return findDeal(invoice).then(deal => { if (!deal) throw new Error('no deal'); /* … */ });
+  }
+}
+
+// Simpler: match the file
+export async function syncDeal(invoice: Invoice) {
+  const deal = await findDeal(invoice);
+  if (!deal) return log.warn(`no Deal for ${invoice.id}`);
+  /* … */
+}
+```
+
+Fine when the repo's documented standard differs from the file. The standard wins.
+
+#### Own leftovers
+
+```diff
+-import { fetchLatestInvoice, fetchPreviousInvoice } from '../billing/client.js';
++import { fetchInvoices, fetchLatestInvoice, fetchPreviousInvoice } from '../billing/client.js';
+-  const previous = await fetchPreviousInvoice(invoice.id, sub, workspaceId);
++  const all = await fetchInvoices(workspaceId);
+```
+
+Flagged: this diff removed the last call to fetchPreviousInvoice but kept its import. Simpler: drop it from the import.
+
+Fine when other code still calls it. Check before removing.
+
+#### Unasked cleanup
+
+```diff
+ export function renewalStatus(row: Row) { /* the change */ }
+-
+-// Old chain helper, unused since 1.0.40
+-function legacyWalkBack(row: Row) { /* … */ }
+```
+
+Flagged: the dead helper predates this diff and nobody asked to remove it. Simpler: restore it, and mention it in the PR as a follow-up.
+
+Fine when the ticket is the cleanup, or this diff is what made it dead.
+
+### Goal-driven execution
+
+#### Unproven fix
+
+Bug: "A Renewal row gets both prorations merged twice."
+
+```diff
+-  await mergeProration(row, first); await mergeProration(row, second);
++  await mergeProrations(row, [first, second]);
+```
+
+Flagged: no test reproduces the double merge. Simpler: add the test first, see it fail, then fix.
+
+```ts
+it('merges two prorations into one row once', async () => {
+  await syncInvoices([period, proration1, proration2]);
+  expect(amountOf(rowFor(period))).toBe(period.amountUsd + proration1.amountUsd + proration2.amountUsd);
+});
+```
+
+Fine when the code has no tests and the fix is a config value or a one-line typo. Say so in the PR.
+
+#### Unguarded refactor
+
+```diff
+-export async function syncInvoice(invoice: Invoice) { /* 120 lines */ }
++export async function syncInvoice(invoice: Invoice) {
++  const period = await findPeriod(invoice);
++  return period ? updatePeriod(period, invoice) : createPeriod(invoice);
++}
+```
+
+Flagged: behaviour should be unchanged, but no test covers syncInvoice. Simpler: point to the tests that cover it, or add one per branch before splitting.
+
+Fine when existing tests already exercise every branch. Name them in the review.
